@@ -90,7 +90,7 @@ def set_noncat_slot(
             tok_end_idx = predictions_value[slot_idx][0]["noncat_slot_end"]
             ch_start_idx = predictions_value[slot_idx][0]["noncat_alignment_start"][tok_start_idx]
             ch_end_idx = predictions_value[slot_idx][0]["noncat_alignment_end"][tok_end_idx]
-            logging.info(f'{slot} score: {score}')
+            # logging.info(f'{slot} score: {score}')
             if ch_start_idx > 0 and ch_end_idx > 0:
                 # Add span from the utterance.
                 out_dict[slot] = user_utterance[ch_start_idx - 1 : ch_end_idx]
