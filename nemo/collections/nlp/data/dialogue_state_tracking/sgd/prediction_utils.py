@@ -187,8 +187,8 @@ def get_predicted_dialog(dialog: dict, all_predictions: dict, schemas: object, s
                 # because of use of same objects.
                 state["slot_values"] = {s: [v] for s, v in slot_values.items()}
                 
-                sv = json.dumps(state["slot_values"], indent=2)
-                logging.info(f'{service} slot values: {sv}')
+                # sv = json.dumps(state["slot_values"], indent=2)
+                # logging.info(f'{service} slot values: {sv}')
 
                 for s, v in slot_values.items():
                     s = f'{service.lower()}-{s}'
