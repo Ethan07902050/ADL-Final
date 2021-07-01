@@ -35,7 +35,7 @@ __all__ = ['SGDDataProcessor']
 FILE_RANGES = {
     "sgd_single_domain": {"train": range(1, 44), "dev": range(1, 8), "test": range(1, 12)},
     "sgd_multi_domain": {"train": range(44, 128), "dev": range(8, 21), "test": range(12, 35)},
-    "sgd_all": {"train": range(1, 128), "dev": range(1, 21), "test": range(1, 35)},
+    "sgd_all": {"train": range(1, 139), "dev": range(1, 21), "test": range(1, 17), "test_unseen": range(1, 6)},
     "sgd_all_single": {"train": range(1, 128), "dev": range(1, 8), "test": range(1, 12)},
     "multiwoz": {"train": range(1, 18), "dev": range(1, 3), "test": range(1, 3)},
     "debug_sample": {"train": range(1, 2), "dev": range(1, 2), "test": range(1, 2)},
@@ -66,9 +66,9 @@ class SGDDataProcessor(object):
             schema_config: schema configuration
             subsample: whether to balance positive and negative samples in dataset
         """
-        self.data_dir = data_dir
+        # self.data_dir = data_dir
 
-        self._task_name = task_name
+        # self._task_name = task_name
         self.schemas = schemas
         self.schema_config = schema_config
 
@@ -97,17 +97,17 @@ class SGDDataProcessor(object):
         # slots_relation_list.np would contain the candidate list of slots for each (service, slot) which would be
         # looked into when a switch between two services happens in the dialogue and we can not find any value for a slot in the current user utterance.
         # This file would get generated from the dialogues in the training set.
-        self.slots_relation_file = os.path.join(dialogues_example_dir, f"{task_name}_train_slots_relation_list.np")
-        for dataset in ["train", "dev", "test"]:
-            # Process dialogue files
-            dial_file = f"{task_name}_{dataset}_examples.processed"
-            dial_file = os.path.join(dialogues_example_dir, dial_file)
-            self.dial_files[(task_name, dataset)] = dial_file
+        # self.slots_relation_file = os.path.join(dialogues_example_dir, f"{task_name}_train_slots_relation_list.np")
+        # for dataset in ["train", "dev", "test"]:
+        #     # Process dialogue files
+        #     dial_file = f"{task_name}_{dataset}_examples.processed"
+        #     dial_file = os.path.join(dialogues_example_dir, dial_file)
+        #     self.dial_files[(task_name, dataset)] = dial_file
 
-            dialog_paths = SGDDataProcessor.get_dialogue_files(data_dir, dataset, task_name)
-            dialogs = SGDDataProcessor.load_dialogues(dialog_paths)
-            for dialog in dialogs:
-                self._seen_services[dataset].update(set(dialog['services']))
+        #     dialog_paths = SGDDataProcessor.get_dialogue_files(data_dir, dataset, task_name)
+        #     dialogs = SGDDataProcessor.load_dialogues(dialog_paths)
+        #     for dialog in dialogs:
+        #         self._seen_services[dataset].update(set(dialog['services']))
 
     def save_dialog_examples(self, overwrite_dial_files: bool):
         """
@@ -355,6 +355,7 @@ class SGDDataProcessor(object):
                 int(turn_id_),
                 schemas.get_service_id(service),
             ]
+            # logging.info(f'base example id: {base_example.example_id}')
 
             for model_task in range(self.schema_config["NUM_TASKS"]):
                 if model_task == 0:
@@ -376,7 +377,7 @@ class SGDDataProcessor(object):
                             intent_description,
                             system_user_utterance,
                         )
-                        task_example.add_intents(user_frame)
+                        # task_example.add_intents(user_frame)
                         examples.append(task_example)
 
                 if model_task == 1:
@@ -396,7 +397,7 @@ class SGDDataProcessor(object):
                             slot_description,
                             user_utterance,
                         )
-                        task_example.add_requested_slots(user_frame)
+                        # task_example.add_requested_slots(user_frame)
                         examples.append(task_example)
                 if model_task == 2:
                     off_slots = []

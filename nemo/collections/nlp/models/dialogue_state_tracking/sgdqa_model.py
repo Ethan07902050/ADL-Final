@@ -375,8 +375,12 @@ class SGDQAModel(NLPModel):
         self.log(f'test_loss', avg_loss, prog_bar=True)
 
     def multi_eval_epoch_end_helper(
-        self, outputs: List[dict], split: str, dataloader: torch.utils.data.DataLoader
-    ) -> dict:
+        self, outputs: List[dict], 
+        split: str, 
+        dataloader: torch.utils.data.DataLoader, 
+        dialogues_processor: SGDDataProcessor, 
+        filename: str
+    ):
         """
         Helper called at the end of evaluation to post process outputs into human readable format
         Args:
@@ -432,82 +436,86 @@ class SGDQAModel(NLPModel):
                         examples_preds[i][k] = v[i].view(-1)
             return examples_preds
 
-        example_id_num = torch.cat([x[f'tensors']['example_id_num'] for x in outputs])
-        service_id = torch.cat([x[f'tensors']['service_id'] for x in outputs])
-        intent_status = torch.cat([x[f'tensors']['intent_status'] for x in outputs])
-        req_slot_status = torch.cat([x[f'tensors']['req_slot_status'] for x in outputs])
-        cat_slot_status = torch.cat([x[f'tensors']['cat_slot_status'] for x in outputs])
-        cat_slot_status_p = torch.cat([x[f'tensors']['cat_slot_status_p'] for x in outputs])
-        cat_slot_value_status = torch.cat([x[f'tensors']['cat_slot_value_status'] for x in outputs])
-        noncat_slot_status = torch.cat([x[f'tensors']['noncat_slot_status'] for x in outputs])
-        noncat_slot_status_p = torch.cat([x[f'tensors']['noncat_slot_status_p'] for x in outputs])
-        noncat_slot_p = torch.cat([x[f'tensors']['noncat_slot_p'] for x in outputs])
-        noncat_slot_start = torch.cat([x[f'tensors']['noncat_slot_start'] for x in outputs])
-        noncat_slot_end = torch.cat([x[f'tensors']['noncat_slot_end'] for x in outputs])
-        noncat_alignment_start = torch.cat([x[f'tensors']['noncat_alignment_start'] for x in outputs])
-        noncat_alignment_end = torch.cat([x[f'tensors']['noncat_alignment_end'] for x in outputs])
+        example_id_num = torch.cat([x['example_id_num'] for x in outputs])
+        service_id = torch.cat([x['service_id'] for x in outputs])
+        intent_status = torch.cat([x['intent_status'] for x in outputs])
+        req_slot_status = torch.cat([x['req_slot_status'] for x in outputs])
+        cat_slot_status = torch.cat([x['cat_slot_status'] for x in outputs])
+        cat_slot_status_p = torch.cat([x['cat_slot_status_p'] for x in outputs])
+        cat_slot_value_status = torch.cat([x['cat_slot_value_status'] for x in outputs])
+        noncat_slot_status = torch.cat([x['noncat_slot_status'] for x in outputs])
+        noncat_slot_status_p = torch.cat([x['noncat_slot_status_p'] for x in outputs])
+        noncat_slot_p = torch.cat([x['noncat_slot_p'] for x in outputs])
+        noncat_slot_start = torch.cat([x['noncat_slot_start'] for x in outputs])
+        noncat_slot_end = torch.cat([x['noncat_slot_end'] for x in outputs])
+        noncat_alignment_start = torch.cat([x['noncat_alignment_start'] for x in outputs])
+        noncat_alignment_end = torch.cat([x['noncat_alignment_end'] for x in outputs])
 
-        ids_to_service_names_dict = self.dialogues_processor.schemas._services_id_to_vocab
+        ids_to_service_names_dict = dialogues_processor.schemas._services_id_to_vocab
         example_id = get_str_example_id(dataloader.dataset, ids_to_service_names_dict, example_id_num)
 
-        metrics = {}
-        try:
-            prediction_dir = self.trainer.log_dir if self.trainer.log_dir is not None else ""
-        except:
-            prediction_dir = ""
+        # metrics = {}
+        # try:
+        #     prediction_dir = self.trainer.log_dir if self.trainer.log_dir is not None else ""
+        # except:
+        #     prediction_dir = ""
+        prediction_dir = ''
 
-        if self.trainer.global_rank == 0:
-            prediction_dir = os.path.join(
-                prediction_dir, 'predictions', 'pred_res_{}_{}'.format(split, self._cfg.dataset.task_name)
-            )
-            os.makedirs(prediction_dir, exist_ok=True)
+        # if self.trainer.global_rank == 0:
 
-            input_json_files = SGDDataProcessor.get_dialogue_files(
-                self._cfg.dataset.data_dir, split, self._cfg.dataset.task_name
-            )
+        data_dir = '/content/gdrive/MyDrive/ADL21-Final/data-0625'
+        task_name = 'sgd_all'
+        prediction_dir = os.path.join(
+            prediction_dir, 'predictions', 'pred_res_{}_{}'.format(split, task_name)
+        )
+        os.makedirs(prediction_dir, exist_ok=True)
+        # input_json_files = SGDDataProcessor.get_dialogue_files(
+        #     data_dir, split, task_name
+        # )
 
-            predictions = {}
-            predictions['example_id'] = example_id
-            predictions['service_id'] = service_id
-            predictions['intent_status'] = intent_status
-            predictions['req_slot_status'] = req_slot_status
-            predictions['cat_slot_status'] = cat_slot_status
-            predictions['cat_slot_status_p'] = cat_slot_status_p
-            predictions['cat_slot_value_status'] = cat_slot_value_status
-            predictions['noncat_slot_status'] = noncat_slot_status
-            predictions['noncat_slot_status_p'] = noncat_slot_status_p
-            predictions['noncat_slot_p'] = noncat_slot_p
-            predictions['noncat_slot_start'] = noncat_slot_start
-            predictions['noncat_slot_end'] = noncat_slot_end
-            predictions['noncat_alignment_start'] = noncat_alignment_start
-            predictions['noncat_alignment_end'] = noncat_alignment_end
+        predictions = {}
+        predictions['example_id'] = example_id
+        predictions['service_id'] = service_id
+        predictions['intent_status'] = intent_status
+        predictions['req_slot_status'] = req_slot_status
+        predictions['cat_slot_status'] = cat_slot_status
+        predictions['cat_slot_status_p'] = cat_slot_status_p
+        predictions['cat_slot_value_status'] = cat_slot_value_status
+        predictions['noncat_slot_status'] = noncat_slot_status
+        predictions['noncat_slot_status_p'] = noncat_slot_status_p
+        predictions['noncat_slot_p'] = noncat_slot_p
+        predictions['noncat_slot_start'] = noncat_slot_start
+        predictions['noncat_slot_end'] = noncat_slot_end
+        predictions['noncat_alignment_start'] = noncat_alignment_start
+        predictions['noncat_alignment_end'] = noncat_alignment_end
 
-            in_domain_services = get_in_domain_services(
-                os.path.join(self._cfg.dataset.data_dir, split, "schema.json"),
-                self.dialogues_processor.get_seen_services("train"),
-            )
-            predictions = combine_predictions_in_example(predictions, service_id.shape[0])
+        # in_domain_services = get_in_domain_services(
+        #     os.path.join(self._cfg.dataset.data_dir, "schema.json"),
+        #     self.dialogues_processor.get_seen_services("train"),
+        # )
+        in_domain_services = set()
+        predictions = combine_predictions_in_example(predictions, service_id.shape[0])
 
-            # write predictions to file in Dstc8/SGD format
-            write_predictions_to_file(
-                predictions,
-                input_json_files,
-                output_dir=prediction_dir,
-                schemas=self.dialogues_processor.schemas,
-                state_tracker=self._cfg.dataset.state_tracker,
-                eval_debug=False,
-                in_domain_services=in_domain_services,
-            )
-            metrics = evaluate(
-                prediction_dir,
-                self._cfg.dataset.data_dir,
-                split,
-                in_domain_services,
-                joint_acc_across_turn=self._cfg.dataset.joint_acc_across_turn,
-                use_fuzzy_match=self._cfg.dataset.use_fuzzy_match,
-            )
+        # write predictions to file in Dstc8/SGD format
+        write_predictions_to_file(
+            predictions,
+            input_json_files=[filename],
+            output_dir=prediction_dir,
+            schemas=dialogues_processor.schemas,
+            state_tracker='baseline',
+            eval_debug=False,
+            in_domain_services=in_domain_services,
+        )
+            # metrics = evaluate(
+            #     prediction_dir,
+            #     self._cfg.dataset.data_dir,
+            #     split,
+            #     in_domain_services,
+            #     joint_acc_across_turn=self._cfg.dataset.joint_acc_across_turn,
+            #     use_fuzzy_match=self._cfg.dataset.use_fuzzy_match,
+            # )
 
-        return metrics
+        # return metrics
 
     def prepare_data(self):
         """
@@ -523,9 +531,9 @@ class SGDQAModel(NLPModel):
             "NUM_TASKS": NUM_TASKS,
             "MAX_SEQ_LENGTH": self._cfg.dataset.max_seq_length,
         }
-        all_schema_json_paths = []
-        for dataset_split in ['train', 'test', 'dev']:
-            all_schema_json_paths.append(os.path.join(self._cfg.dataset.data_dir, dataset_split, "schema.json"))
+        all_schema_json_paths = [os.path.join(self._cfg.dataset.data_dir, 'schema.json')]
+        # for dataset_split in ['train', 'test', 'dev']:
+        #    all_schema_json_paths.append(os.path.join(self._cfg.dataset.data_dir, dataset_split, "schema.json"))
         schemas = Schema(all_schema_json_paths)
 
         self.dialogues_processor = SGDDataProcessor(

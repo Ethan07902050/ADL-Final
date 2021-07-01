@@ -23,6 +23,8 @@ import json
 import os
 from collections import OrderedDict, defaultdict
 from typing import Dict, List, Optional
+from tqdm import tqdm
+import re
 
 from nemo.collections.nlp.data.dialogue_state_tracking.sgd.input_example import (
     STATUS_ACTIVE,
@@ -83,10 +85,12 @@ def set_noncat_slot(
         if slot_status == STATUS_DONTCARE:
             out_dict[slot] = STR_DONTCARE
         elif slot_status == STATUS_ACTIVE:
+            score = predictions_value[slot_idx][0]["noncat_slot_p"]
             tok_start_idx = predictions_value[slot_idx][0]["noncat_slot_start"]
             tok_end_idx = predictions_value[slot_idx][0]["noncat_slot_end"]
             ch_start_idx = predictions_value[slot_idx][0]["noncat_alignment_start"][tok_start_idx]
             ch_end_idx = predictions_value[slot_idx][0]["noncat_alignment_end"][tok_end_idx]
+            logging.info(f'{slot} score: {score}')
             if ch_start_idx > 0 and ch_end_idx > 0:
                 # Add span from the utterance.
                 out_dict[slot] = user_utterance[ch_start_idx - 1 : ch_end_idx]
@@ -95,6 +99,15 @@ def set_noncat_slot(
                 out_dict[slot] = sys_slots_agg[slot]
     return out_dict
 
+def format_dialog_id(dialog_id):
+    id_mapping = {'MUL': 100, 'SNG': 101, 'PMUL': 102}
+    alpha = re.findall('[A-Z]+', dialog_id)
+    if len(alpha) != 0:
+        dialog_id = dialog_id.replace(alpha[0], f'{id_mapping[alpha[0]]}_')
+    
+    dialog_id_1 = dialog_id.split('_')[1]
+    dialog_id = dialog_id.replace(dialog_id_1, dialog_id_1.zfill(5))
+    return dialog_id
 
 def get_predicted_dialog(dialog: dict, all_predictions: dict, schemas: object, state_tracker: str) -> dict:
     """Overwrite the labels in the turn with the predictions from the model. For test set, these labels are missing from the data and hence they are added. 
@@ -106,12 +119,16 @@ def get_predicted_dialog(dialog: dict, all_predictions: dict, schemas: object, s
     Returns:
         dialog: dialog overwritten with prediction information
     """
-    dialog_id = dialog["dialogue_id"]
+    
+    # logging.info(f'all predictions: {all_predictions}')
+    dialog_id = format_dialog_id(dialog["dialogue_id"])    
+    # logging.info(f'state tracker: {state_tracker}')
     if state_tracker == "baseline":
         sys_slots_agg = {}
     else:
         sys_slots_agg = defaultdict(OrderedDict)
     all_slot_values = defaultdict(dict)
+    dial_states = {}
     for turn_idx, turn in enumerate(dialog["turns"]):
         if turn["speaker"] == "SYSTEM" and state_tracker == 'nemotracker':
             for frame in turn["frames"]:
@@ -125,14 +142,15 @@ def get_predicted_dialog(dialog: dict, all_predictions: dict, schemas: object, s
             system_utterance = dialog["turns"][turn_idx - 1]["utterance"] if turn_idx else ""
             system_user_utterance = system_utterance + ' ' + user_utterance
             turn_id = "{:02d}".format(turn_idx)
-            for frame in turn["frames"]:
-
-                predictions = all_predictions[(dialog_id, turn_id, frame["service"])]
-                slot_values = all_slot_values[frame["service"]]
-                service_schema = schemas.get_service_schema(frame["service"])
+            # for frame in turn["frames"]:
+            for service in dialog['services']:
+                # logging.info(f'pred key: {(dialog_id, turn_id, service)}')
+                predictions = all_predictions[(dialog_id, turn_id, service)]
+                slot_values = all_slot_values[service]
+                service_schema = schemas.get_service_schema(service)
                 # Remove the slot spans and state if present.
-                frame.pop("slots", None)
-                frame.pop("state", None)
+                # frame.pop("slots", None)
+                # frame.pop("state", None)
 
                 # The baseline model doesn't predict slot spans. Only state predictions
                 # are added.
@@ -161,15 +179,24 @@ def get_predicted_dialog(dialog: dict, all_predictions: dict, schemas: object, s
                     predictions_value=predictions[5],
                     non_cat_slots=service_schema.non_categorical_slots,
                     user_utterance=system_user_utterance,
-                    sys_slots_agg=sys_slots_agg.get(frame["service"], None),
+                    sys_slots_agg=sys_slots_agg.get(service, None),
                 )
                 for k, v in noncat_out_dict.items():
                     slot_values[k] = v
                 # Create a new dict to avoid overwriting the state in previous turns
                 # because of use of same objects.
                 state["slot_values"] = {s: [v] for s, v in slot_values.items()}
-                frame["state"] = state
-    return dialog
+                
+                sv = json.dumps(state["slot_values"], indent=2)
+                logging.info(f'{service} slot values: {sv}')
+
+                for s, v in slot_values.items():
+                    s = f'{service.lower()}-{s}'
+                    dial_states[s] = v
+                # logging.info(f'state: {json.dumps(dial_states, indent=2)}')
+                # frame["state"] = state
+          
+    return dial_states
 
 
 def get_predicted_intent(predictions: dict, intents: List[str]) -> str:
@@ -234,18 +261,29 @@ def write_predictions_to_file(
         all_predictions[(dialog_id, turn_id, service_name)][int(model_task)][int(slot_intent_id)][
             int(value_id)
         ] = prediction
-    logging.info(f'Predictions for {idx} examples in {eval_dataset} dataset are getting processed.')
+    
+    # logging.info(f'all_predictions: {all_predictions}')
+    # logging.info(f'Predictions for {idx} examples in {eval_dataset} dataset are getting processed.')
 
     # Read each input file and write its predictions.
+    
+    debug = 0
     for input_file_path in input_json_files:
         with open(input_file_path) as f:
             dialogs = json.load(f)
-            logging.debug(f'{input_file_path} file is loaded')
-            pred_dialogs = []
+            logging.info(f'{input_file_path} file is loaded')
+            
+            ans = {}
             for d in dialogs:
-                pred_dialog = get_predicted_dialog(d, all_predictions, schemas, state_tracker)
-                pred_dialogs.append(pred_dialog)
+                dial_states = get_predicted_dialog(d, all_predictions, schemas, state_tracker)
+                ans[d['dialogue_id']] = dial_states
+                if debug:
+                    break
+
         input_file_name = os.path.basename(input_file_path)
         output_file_path = os.path.join(output_dir, input_file_name)
         with open(output_file_path, "w") as f:
-            json.dump(pred_dialogs, f, indent=2, separators=(",", ": "), sort_keys=True)
+            json.dump(ans, f, indent=2, separators=(",", ": "), sort_keys=True)
+        logging.info(f'predictions of {input_file_path} saved')
+        if debug:
+            break
