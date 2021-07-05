@@ -234,7 +234,8 @@ def main(cfg: DictConfig) -> None:
     )
 
     answers = {}
-    for filename in input_json_files:            
+    for filename in input_json_files:
+        logging.info(f'predicting {filename}')           
         with open(filename, 'r') as f:
             dialogues = json.load(f)
         turn_examples = []

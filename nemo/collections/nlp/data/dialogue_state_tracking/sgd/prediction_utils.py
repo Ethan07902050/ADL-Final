@@ -271,7 +271,7 @@ def write_predictions_to_file(
     for input_file_path in input_json_files:
         with open(input_file_path) as f:
             dialogs = json.load(f)
-            logging.info(f'predicting {input_file_path}')
+            logging.info(f'postprocessing {input_file_path}')
             
             ans = {}
             for d in dialogs:
