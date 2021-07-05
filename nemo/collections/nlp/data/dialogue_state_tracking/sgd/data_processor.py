@@ -74,12 +74,14 @@ class SGDDataProcessor(object):
 
         train_file_range = FILE_RANGES[task_name]["train"]
         dev_file_range = FILE_RANGES[task_name]["dev"]
-        test_file_range = FILE_RANGES[task_name]["test"]
+        test_seen_file_range = FILE_RANGES[task_name]["test_seen"]
+        test_unseen_file_range = FILE_RANGES[task_name]["test_unseen"]
 
         self._file_ranges = {
             "train": train_file_range,
             "dev": dev_file_range,
-            "test": test_file_range,
+            "test_seen": test_seen_file_range,
+            "test_unseen": test_unseen_file_range,
         }
 
         self._seen_services = {
