@@ -268,15 +268,15 @@ def write_predictions_to_file(
 
     # Read each input file and write its predictions.
     
+    ans = {}
     for input_file_path in input_json_files:
         with open(input_file_path) as f:
             dialogs = json.load(f)
-            logging.info(f'postprocessing {input_file_path}')
             
-            ans = {}
-            for d in dialogs:
-                dial_states = get_predicted_dialog(d, all_predictions, schemas, state_tracker)
-                ans[d['dialogue_id']] = dial_states
+        logging.info(f'postprocessing {input_file_path}')
+        for d in dialogs:
+            dial_states = get_predicted_dialog(d, all_predictions, schemas, state_tracker)
+            ans[d['dialogue_id']] = dial_states
 
         # input_file_name = os.path.basename(input_file_path)
         # output_file_path = os.path.join(output_dir, input_file_name)
