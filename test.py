@@ -186,6 +186,23 @@ def create_examples_from_dialogue(dialogue, dialogues_processor, dataset_split, 
         dial_turn_examples.extend(turn_examples)
     return dial_turn_examples
 
+def write_csv(ans, output_path):
+    ans = sorted(ans.items(), key=lambda x: x[0])
+    with open(output_path, 'w') as f:
+        f.write('id,state\n')
+        for dialogue_id, states in ans:
+            if len(states) == 0:  # no state ?
+                str_state = 'None'
+            else:
+                states = sorted(states.items(), key=lambda x: x[0])
+                str_state = ''
+                for slot, value in states:
+                    # NOTE: slot = "{}-{}".format(service_name, slot_name)
+                    str_state += "{}={}|".format(
+                            slot.lower(), value.replace(',', '_').lower())
+                str_state = str_state[:-1]
+            f.write('{},{}\n'.format(dialogue_id, str_state))
+
 @hydra_runner(config_path="conf", config_name="sgdqa_config")
 def main(cfg: DictConfig) -> None:
     model = SGDQAModel.from_pretrained(cfg.pretrained_model)
@@ -216,6 +233,7 @@ def main(cfg: DictConfig) -> None:
         data_dir, split, task_name
     )
 
+    answers = {}
     for filename in input_json_files:            
         with open(filename, 'r') as f:
             dialogues = json.load(f)
@@ -243,7 +261,11 @@ def main(cfg: DictConfig) -> None:
             preds.append(pred)
 
         # ids_to_service_names_dict = dialogues_processor.schemas._services_id_to_vocab
-        model.multi_eval_epoch_end_helper(preds, split, dl, dialogues_processor, filename)
+        ans = model.multi_eval_epoch_end_helper(preds, split, dl, dialogues_processor, filename)
+        answers.update(ans)
+        
+    write_csv(answers, 'submission.csv')
+    logging.info('submission.csv saved')
 
 if __name__ == '__main__':
     main()

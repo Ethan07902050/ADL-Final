@@ -251,7 +251,7 @@ def write_predictions_to_file(
         eval_debug: output evaluation debugging information
         in_domain_services: in domain services
     """
-    logging.info(f"Writing predictions to {output_dir} started.")
+    # logging.info(f"Writing predictions to {output_dir} started.")
 
     # Index all predictions.
     all_predictions = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
@@ -271,7 +271,7 @@ def write_predictions_to_file(
     for input_file_path in input_json_files:
         with open(input_file_path) as f:
             dialogs = json.load(f)
-            logging.info(f'{input_file_path} file is loaded')
+            logging.info(f'predicting {input_file_path}')
             
             ans = {}
             for d in dialogs:
