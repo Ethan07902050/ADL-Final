@@ -497,7 +497,7 @@ class SGDQAModel(NLPModel):
         predictions = combine_predictions_in_example(predictions, service_id.shape[0])
 
         # write predictions to file in Dstc8/SGD format
-        write_predictions_to_file(
+        ans = write_predictions_to_file(
             predictions,
             input_json_files=[filename],
             output_dir=prediction_dir,
@@ -515,7 +515,7 @@ class SGDQAModel(NLPModel):
             #     use_fuzzy_match=self._cfg.dataset.use_fuzzy_match,
             # )
 
-        # return metrics
+        return ans
 
     def prepare_data(self):
         """
