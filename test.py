@@ -216,7 +216,6 @@ def main(cfg: DictConfig) -> None:
         data_dir, split, task_name
     )
 
-    debug = 0
     for filename in input_json_files:            
         with open(filename, 'r') as f:
             dialogues = json.load(f)
@@ -224,8 +223,6 @@ def main(cfg: DictConfig) -> None:
         for dialogue in dialogues:
             examples = create_examples_from_dialogue(dialogue, dialogues_processor, split, schemas)
             turn_examples.extend(examples)
-            if debug:
-                break
 
         dataset = SGDDataset(turn_examples)
         dl = torch.utils.data.DataLoader(
@@ -245,10 +242,8 @@ def main(cfg: DictConfig) -> None:
             pred = predict(model, device, batch)
             preds.append(pred)
 
-        ids_to_service_names_dict = dialogues_processor.schemas._services_id_to_vocab
+        # ids_to_service_names_dict = dialogues_processor.schemas._services_id_to_vocab
         model.multi_eval_epoch_end_helper(preds, split, dl, dialogues_processor, filename)
-        if debug:
-            break
 
 if __name__ == '__main__':
     main()

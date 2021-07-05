@@ -100,6 +100,7 @@ def set_noncat_slot(
     return out_dict
 
 def format_dialog_id(dialog_id):
+    dialog_id = dialog_id.replace('.json', '')
     id_mapping = {'MUL': 100, 'SNG': 101, 'PMUL': 102}
     alpha = re.findall('[A-Z]+', dialog_id)
     if len(alpha) != 0:
@@ -267,7 +268,6 @@ def write_predictions_to_file(
 
     # Read each input file and write its predictions.
     
-    debug = 0
     for input_file_path in input_json_files:
         with open(input_file_path) as f:
             dialogs = json.load(f)
@@ -277,13 +277,11 @@ def write_predictions_to_file(
             for d in dialogs:
                 dial_states = get_predicted_dialog(d, all_predictions, schemas, state_tracker)
                 ans[d['dialogue_id']] = dial_states
-                if debug:
-                    break
 
-        input_file_name = os.path.basename(input_file_path)
-        output_file_path = os.path.join(output_dir, input_file_name)
-        with open(output_file_path, "w") as f:
-            json.dump(ans, f, indent=2, separators=(",", ": "), sort_keys=True)
-        logging.info(f'predictions of {input_file_path} saved')
-        if debug:
-            break
+        # input_file_name = os.path.basename(input_file_path)
+        # output_file_path = os.path.join(output_dir, input_file_name)
+        # with open(output_file_path, "w") as f:
+        #     json.dump(ans, f, indent=2, separators=(",", ": "), sort_keys=True)
+        # logging.info(f'predictions of {input_file_path} saved')
+
+    return ans
