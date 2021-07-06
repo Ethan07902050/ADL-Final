@@ -12,7 +12,7 @@ import copy
 import re
 import pickle
 
-torch.manual_seed(42)
+torch.manual_seed(30)
 NUM_TASKS = 6
 
 # Adapted from 'eval_step_helper' in
