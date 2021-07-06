@@ -11,8 +11,8 @@ import torch
 import copy
 import re
 import pickle
-import argparse
 
+torch.manual_seed(42)
 NUM_TASKS = 6
 
 # Adapted from 'eval_step_helper' in

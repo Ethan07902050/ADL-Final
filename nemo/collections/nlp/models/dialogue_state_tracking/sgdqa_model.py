@@ -468,7 +468,7 @@ class SGDQAModel(NLPModel):
         prediction_dir = os.path.join(
             prediction_dir, 'predictions', 'pred_res_{}_{}'.format(split, task_name)
         )
-        os.makedirs(prediction_dir, exist_ok=True)
+        # os.makedirs(prediction_dir, exist_ok=True)
         # input_json_files = SGDDataProcessor.get_dialogue_files(
         #     data_dir, split, task_name
         # )
